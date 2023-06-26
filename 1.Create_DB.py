@@ -14,7 +14,7 @@ cursor.execute('''
 CREATE TABLE IF NOT EXISTS Prices (
 id INTEGER PRIMARY KEY,
 stock_id INTEGER, 
-date TEXT,
+date DATE,
 open_price REAL,
 high_price REAL,
 low_price REAL,
