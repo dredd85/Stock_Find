@@ -6,16 +6,17 @@ page = requests.get(URL)
 
 soup = BeautifulSoup(page.content, "html.parser")
 
-tickers = []
+tickers = set()
 
 tags = soup.find("table", class_="table table-text table-text-left custom-border")
 
 for tag in tags.find_all('tr'):
     for row in tag:
         strip_row = row.text.strip()
-        if len(strip_row) !=3:
+        if len(strip_row) !=3 or strip_row.isupper() != True:
             continue
         else:
-            tickers.append(strip_row)
-
+            tickers.add(strip_row)
+tickers = list(tickers)
+tickers.sort()
 print(*tickers)
