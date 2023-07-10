@@ -2,7 +2,7 @@ import requests
 from bs4 import BeautifulSoup
 import pandas as pd 
 
-URL = "https://infostrefa.com/infostrefa/pl/spolki"
+URL = "https://infostrefa.com/infostrefa/pl/spolki?market=mainMarket"
 page = requests.get(URL)
 
 soup = BeautifulSoup(page.content, "html.parser")
@@ -17,7 +17,8 @@ for tag in tags.find_all('tr'):
         if len(strip_row) !=3 or strip_row.isupper() != True:
             continue
         else:
-            tickers.add(strip_row)
+            strip_row_gpw = strip_row + '.WA'
+            tickers.add(strip_row_gpw)
 tickers = list(tickers)
 tickers.sort()
 
