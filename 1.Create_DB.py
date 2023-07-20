@@ -6,7 +6,7 @@ cursor = conn.cursor()
 cursor.execute('''
 CREATE TABLE IF NOT EXISTS Stocks (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
-symbol VARCHAR(10),
+symbol VARCHAR(10) UNIQUE,
 company_name VARCHAR(50),
 industry VARCHAR(50)
 )''')
