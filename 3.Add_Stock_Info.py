@@ -1,5 +1,6 @@
 import yfinance as yf
 import pandas as pd
+import sqlite3
 
 df = pd.read_csv('tickers.csv')
 tickers = df.values.tolist()
@@ -25,6 +26,14 @@ print(f'Stock Symbol: {ticker}')
 print(f"Stock Name: {stock_name}")
 print(f"Sector: {stock_sector}")
 
+conn = sqlite3.connect('Stocks.db')
+cursor = conn.cursor()
+cursor.execute('''
+INSERT OR IGNORE INTO Stocks (symbol, company_name, industry) 
+VALUES (?,?,?)''', (ticker, stock_info['longName'], stock_info['sector']))
+
+conn.commit()
+conn.close()
 
 
 
