@@ -4,37 +4,42 @@ import sqlite3
 
 df = pd.read_csv('tickers.csv')
 tickers = df.values.tolist()
-unpacked_tickers = list()
-for rows in tickers:
-    for row in rows:
-        unpacked_tickers.append(row)
+unpacked_tickers = [row for rows in tickers for row in rows]
 
-# ticker = 'AAPL'
-ticker = unpacked_tickers[0]
-# Create a Ticker object for the stock
-stock = yf.Ticker(ticker)
-
-# Get additional information about the stock
-stock_info = stock.info
-
-# Access specific attributes of the stock information
-stock_name = stock_info['longName']
-stock_sector = stock_info['sector']
-
-# Print the additional information
-print(f'Stock Symbol: {ticker}')
-print(f"Stock Name: {stock_name}")
-print(f"Sector: {stock_sector}")
+count = 0
 
 conn = sqlite3.connect('Stocks.db')
 cursor = conn.cursor()
-cursor.execute('''
-INSERT OR IGNORE INTO Stocks (symbol, company_name, industry) 
-VALUES (?,?,?)''', (ticker, stock_info['longName'], stock_info['sector']))
 
-conn.commit()
-conn.close()
+batch_size = 50
+count = 0
 
+try:
+    for i in range(0, len(unpacked_tickers), batch_size):
+        batch_tickers = unpacked_tickers[i : i + batch_size]
+        
+        for ticker in batch_tickers:
+            stock = yf.Ticker(ticker)
+            stock_info = stock.info
+            stock_name = stock_info.get('longName', 'N/A')
+            stock_sector = stock_info.get('sector', 'N/A')
+            print(f'Stock Symbol: {ticker}')
+            print(f"Stock Name: {stock_name}")
+            print(f"Sector: {stock_sector}")
+            cursor.execute('''
+            INSERT OR IGNORE INTO Stocks (symbol, company_name, industry) 
+            VALUES (?,?,?)''', (ticker, stock_name, stock_sector))
+            count += 1
 
+        conn.commit()
+        print(f'Batch {i//batch_size + 1} uploaded to the database')
 
+except Exception as e:
+    print(f'Error occurred: {e}')
+
+finally:
+    conn.commit()
+    conn.close()
+
+print(f'Uploaded {count} ticker info to the database')
 
