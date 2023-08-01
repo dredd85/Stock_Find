@@ -14,12 +14,13 @@ cursor.execute('''
 CREATE TABLE IF NOT EXISTS Prices (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
 stock_id INTEGER, 
-date DATE,
-open_price REAL,
-high_price REAL,
-low_price REAL,
-close_price REAL,
-volume INTEGER,
+Date DATE,
+Open REAL,
+High REAL,
+Low REAL,
+Close REAL,
+Adj Close Real,
+Volume INTEGER,
 FOREIGN KEY (stock_id) REFERENCES stocks (id)
 )''')
 
