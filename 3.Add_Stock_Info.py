@@ -27,7 +27,7 @@ try:
             print(f"Stock Name: {stock_name}")
             print(f"Sector: {stock_sector}")
             cursor.execute('''
-            INSERT OR IGNORE INTO Stocks (symbol, company_name, industry) 
+            INSERT OR IGNORE INTO Stocks (ticker, company_name, industry) 
             VALUES (?,?,?)''', (ticker, stock_name, stock_sector))
             count += 1
 
