@@ -21,14 +21,14 @@ unpacked_tickers = [row for rows in tickers for row in rows]
 conn = sqlite3.connect('Stocks.db')
 cursor = conn.cursor()
 
-start_date = date.today() - timedelta(days=365)
+start_date = date.today() - timedelta(days=2)
 end_date = date.today()
-ticker = '06N.WA'
-#for ticker in unpacked_tickers:
-stock_df = get_stock_data(ticker, start_date, end_date)
-stock_df.to_sql('Prices', conn, if_exists='append', index=False)
-print(stock_df)
-print(f'Added historical data for {ticker}')
+
+for ticker in unpacked_tickers:
+    stock_df = get_stock_data(ticker, start_date, end_date)
+    stock_df.to_sql('Prices', conn, if_exists='append', index=False)
+    print(stock_df)
+    print(f'Added historical data for {ticker}')
 
 conn.commit()
 conn.close()
