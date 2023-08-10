@@ -13,7 +13,7 @@ cursor.execute('''
 CREATE TABLE IF NOT EXISTS Prices (
 id INTEGER PRIMARY KEY AUTOINCREMENT,
 ticker VARCHAR(10), 
-Date DATE UNIQUE,
+Date DATE,
 Open REAL,
 High REAL,
 Low REAL,
