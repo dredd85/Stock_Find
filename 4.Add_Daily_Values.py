@@ -26,7 +26,7 @@ end_date = date.today()
 ticker = '06N.WA'
 #for ticker in unpacked_tickers:
 stock_df = get_stock_data(ticker, start_date, end_date)
-stock_df.to_sql('Prices', conn, if_exists='replace', index=False)
+stock_df.to_sql('Prices', conn, if_exists='append', index=False)
 print(stock_df)
 print(f'Added historical data for {ticker}')
 
