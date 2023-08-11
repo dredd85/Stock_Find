@@ -24,11 +24,21 @@ cursor = conn.cursor()
 start_date = date.today() - timedelta(days=2)
 end_date = date.today()
 
-for ticker in unpacked_tickers:
-    stock_df = get_stock_data(ticker, start_date, end_date)
-    stock_df.to_sql('Prices', conn, if_exists='append', index=False)
-    print(stock_df)
-    print(f'Added historical data for {ticker}')
+batch_size = 50
+
+for i in range(0, len(unpacked_tickers), batch_size):
+    batch_tickers = unpacked_tickers[i : i + batch_size]
+    batch_data = []
+
+    for ticker in batch_tickers:
+        stock_df = get_stock_data(ticker, start_date, end_date)
+        batch_data.append(stock_df)
+    
+    combined_batch = pd.concat(batch_data, ignore_index=True)
+    existing_dates = pd.read_sql(f"SELECT DISTINCT Date FROM Prices WHERE ticker = '{ticker}'", conn)['Date']
+    combined_batch = combined_batch[~combined_batch['Date'].isin(existing_dates)]
+    combined_batch.to_sql('Prices', conn, if_exists='append', index=False)
+    print(f'Batch {i//batch_size + 1} added to database')
 
 conn.commit()
 conn.close()
