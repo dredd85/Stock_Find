@@ -67,6 +67,18 @@ This script fetches daily stock price data for the tickers provided in the "tick
 
 Contributions to this project are welcome! If you have suggestions, improvements, or bug fixes, feel free to open an issue or submit a pull request.
 
+## Future Updates
+
+We have exciting plans for future updates to enhance the functionality of this project:
+
+- **Advanced Data Analysis:** I'm working on implementing advanced data analysis techniques to provide valuable insights from the collected stock data.
+
+- **Interactive Visualization:** Expect interactive data visualization tools that will help you better understand stock trends and patterns.
+
+- **User Customization:** I'm planning to add options for users to customize data collection parameters and analysis settings.
+
+I'm committed to improving this project and making it even more useful for managing and analyzing stock data. Your feedback and contributions are always welcome!
+
 ## License
 
 This project is licensed under the The MIT License (MIT)
