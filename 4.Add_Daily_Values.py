@@ -39,11 +39,9 @@ for i in range(0, len(unpacked_tickers), batch_size):
         print(f'{ticker} data fetched')
         batch_data.append(stock_df)
     
-    combined_batch = pd.concat(batch_data, ignore_index=True)
-    # Checking if the data is already uploaded
-    existing_dates = pd.read_sql(f"SELECT DISTINCT Date FROM Prices WHERE ticker = '{ticker}'", conn)['Date']
-    combined_batch = combined_batch[~combined_batch['Date'].isin(existing_dates)]
-    combined_batch.to_sql('Prices', conn, if_exists='append', index=False)
+    existing_dates = pd.read_sql(f"SELECT DISTINCT Date FROM Prices WHERE ticker = '{stock_df['Ticker'][0]}'", conn)['Date']
+    stock_df = stock_df[~stock_df['Date'].isin(existing_dates)]
+    stock_df.to_sql('Prices', conn, if_exists='append', index=False)
     print(f'Batch {i//batch_size + 1} added to database')
 
 conn.commit()
