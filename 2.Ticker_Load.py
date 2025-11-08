@@ -1,32 +1,70 @@
-import requests
-from bs4 import BeautifulSoup
-import pandas as pd 
+import time
+import pandas as pd
 
-URL = "https://infostrefa.com/infostrefa/pl/spolki?market=mainMarket"
-page = requests.get(URL)
+# --------------------------------------------
+# 1) Get the stock list (symbols) from Bankier
+# --------------------------------------------
+LIST_URL = "https://www.bankier.pl/gielda/notowania/akcje"
+stock_table = pd.read_html(LIST_URL)[0]
 
-soup = BeautifulSoup(page.content, "html.parser")
+# Extract first column = company codes (e.g., 06MAGNA, 11BIT)
+stocks_gpw = (
+    stock_table.iloc[:, 0]
+    .astype(str)
+    .str.strip()
+    .dropna()
+    .tolist()
+)
 
-tickers = set()
+print(f"Found {len(stocks_gpw)} stock codes. Taking first 5 for testing...\n")
 
-tags = soup.find("table", class_="table table-text table-text-left custom-border")
+# -------------------------------------------------
+# 2) Define helper to get Ticker GPW from detail page
+# -------------------------------------------------
+def fetch_ticker_gpw(stock_gpw: str) -> str:
+    """
+    Given a company symbol from Bankier (e.g., '11BIT'),
+    open the 'Podstawowe dane' page and extract 'Ticker GPW'.
+    """
+    details_url = f"https://www.bankier.pl/gielda/notowania/akcje/{stock_gpw}/podstawowe-dane"
+    detail_tables = pd.read_html(details_url, match="Ticker GPW")
+    ticker_gpw = detail_tables[0].iloc[3, 1]  # current index-based extraction
+    return ticker_gpw
 
-for tag in tags.find_all('tr'):
-    for row in tag:
-        strip_row = row.text.strip()
-        if len(strip_row) !=3 or strip_row.isupper() != True:
-            continue
-        else:
-            strip_row_gpw = strip_row + '.WA'
-            tickers.add(strip_row_gpw)
-tickers = list(tickers)
-tickers.sort()
+# -----------------------------------------------
+# 3) Iterate through first 5 and collect tickers
+# -----------------------------------------------
+results = []
 
-print('Downloaded {} GPW tickers from the website'.format(len(tickers)))
+for stock_gpw in stocks_gpw[:5]:
+    try:
+        ticker_gpw = fetch_ticker_gpw(stock_gpw)
+        ticker_openbb = f"{ticker_gpw}.WA"
 
-df = pd.DataFrame(tickers)
-df.to_csv('tickers.csv', encoding='utf-8', index=False, header=False)
-df.columns = ['Tickers']
-print('Writen data into tickers.csv file')
+        results.append({
+            "stock_gpw": stock_gpw,          # Bankier list symbol (e.g., 11BIT)
+            "ticker_gpw": ticker_gpw,        # GPW trading ticker (e.g., 11B)
+            "ticker_openbb": ticker_openbb,  # OpenBB/Yahoo format (e.g., 11B.WA)
+        })
+
+        print(f"{stock_gpw} → GPW: {ticker_gpw}  |  OpenBB/Yahoo: {ticker_openbb}")
+
+    except Exception as e:
+        results.append({
+            "stock_gpw": stock_gpw,
+            "error": str(e),
+        })
+        print(f"{stock_gpw} → ERROR: {e}")
+
+    time.sleep(0.8)  # be polite to the server
+
+# -----------------------------------------------
+# 4) Convert results to DataFrame and inspect
+# -----------------------------------------------
+tickers_df = pd.DataFrame(results)
+
+print("\nResult preview:")
+print(tickers_df.head())
 
 
+tickers_df["ticker_openbb"].to_csv("tickers.csv", index=False, encoding="utf-8-sig")

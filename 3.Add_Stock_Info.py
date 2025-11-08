@@ -11,6 +11,9 @@ count = 0
 conn = sqlite3.connect('Stocks.db')
 cursor = conn.cursor()
 
+sql_delete_all_query = "DELETE FROM Stocks"
+cursor.execute(sql_delete_all_query)
+
 batch_size = 50
 count = 0
 
