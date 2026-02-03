@@ -1,5 +1,7 @@
 import time
 import pandas as pd
+import requests
+from bs4 import BeautifulSoup
 
 # --------------------------------------------
 # 1) Get the stock list (symbols) from Bankier
@@ -21,15 +23,27 @@ print(f"Found {len(stocks_gpw)} stock codes. Taking first 5 for testing...\n")
 # -------------------------------------------------
 # 2) Define helper to get Ticker GPW from detail page
 # -------------------------------------------------
-def fetch_ticker_gpw(stock_gpw: str) -> str:
-    """
-    Given a company symbol from Bankier (e.g., '11BIT'),
-    open the 'Podstawowe dane' page and extract 'Ticker GPW'.
-    """
+def fetch_ticker_gpw(stock_gpw: str) -> str | None:
     details_url = f"https://www.bankier.pl/gielda/notowania/akcje/{stock_gpw}/podstawowe-dane"
-    detail_tables = pd.read_html(details_url, match="Ticker GPW")
-    ticker_gpw = detail_tables[0].iloc[3, 1]  # current index-based extraction
+    headers = {"User-Agent": "Mozilla/5.0"}
+
+    response = requests.get(details_url, headers=headers, timeout=10)
+    response.raise_for_status()
+
+    soup = BeautifulSoup(response.text, "html.parser")
+
+    ticker_gpw = None
+
+    for li in soup.select("li.m-quotes-data-list__item"):
+        label = li.select_one(".m-quotes-data-list__name")
+        value = li.select_one(".m-quotes-data-list__content")
+
+        if label and value and label.text.strip() == "Ticker GPW":
+            ticker_gpw = value.text.strip()
+            break
+
     return ticker_gpw
+
 
 # -----------------------------------------------
 # 3) Iterate through first 5 and collect tickers
