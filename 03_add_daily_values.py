@@ -3,46 +3,142 @@ import pandas as pd
 import sqlite3
 from datetime import date, timedelta
 
-# Function to fetch stock data for a given ticker and return a DataFrame
+
+# -----------------------------------
+# Function to fetch stock data
+# -----------------------------------
 def get_stock_data(ticker, start_date, end_date):
     try:
-        stock_data = yf.download(ticker, start=start_date, end=end_date)
+        stock_data = yf.download(
+            ticker,
+            start=start_date,
+            end=end_date,
+            auto_adjust=False,
+            progress=False
+        )
+
+        if stock_data.empty:
+            return None
+
         df = pd.DataFrame(stock_data)
         df.reset_index(inplace=True)
-        df.drop('Adj Close', axis=1, inplace=True)
-        # Add the 'Ticker' column to the DataFrame
-        df['Ticker'] = ticker
+
+        # Fix MultiIndex columns returned by newer yfinance
+        if isinstance(df.columns, pd.MultiIndex):
+            df.columns = [col[0] for col in df.columns]
+
+        # Remove Adj Close if present
+        if 'Adj Close' in df.columns:
+            df.drop('Adj Close', axis=1, inplace=True)
+
+        # Match database column naming
+        df['ticker'] = ticker
+
         return df
+
     except Exception as e:
         print(f"Failed to fetch data for {ticker}: {e}")
         return None
 
-df = pd.read_csv('tickers.csv')
 
-tickers = df.values.tolist()
-unpacked_tickers = [row for rows in tickers for row in rows]
+# -----------------------------------
+# Load tickers
+# -----------------------------------
+df = pd.read_csv('tickers.csv', header=None)
 
+tickers = df[0].tolist()
+
+print(f"Loaded {len(tickers)} tickers")
+
+
+# -----------------------------------
+# Connect to database
+# -----------------------------------
 conn = sqlite3.connect('Stocks.db')
-cursor = conn.cursor()
 
+
+# -----------------------------------
+# Date range
+# -----------------------------------
 start_date = date.today() - timedelta(days=2)
 end_date = date.today()
 
+print(f"Downloading data from {start_date} to {end_date}")
+
+
+# -----------------------------------
+# Process tickers in batches
+# -----------------------------------
 batch_size = 50
 
-for i in range(0, len(unpacked_tickers), batch_size):
-    batch_tickers = unpacked_tickers[i : i + batch_size]
-    batch_data = []
+for i in range(0, len(tickers), batch_size):
+
+    batch_tickers = tickers[i:i + batch_size]
+
+    print(f"\nStarting batch {i // batch_size + 1}")
 
     for ticker in batch_tickers:
-        stock_df = get_stock_data(ticker, start_date, end_date)
-        print(f'{ticker} data fetched')
-        batch_data.append(stock_df)
-    
-    existing_dates = pd.read_sql(f"SELECT DISTINCT Date FROM Prices WHERE ticker = '{stock_df['Ticker'][0]}'", conn)['Date']
-    stock_df = stock_df[~stock_df['Date'].isin(existing_dates)]
-    stock_df.to_sql('Prices', conn, if_exists='append', index=False)
-    print(f'Batch {i//batch_size + 1} added to database')
 
-conn.commit()
+        stock_df = get_stock_data(
+            ticker,
+            start_date,
+            end_date
+        )
+
+        if stock_df is None or stock_df.empty:
+            print(f"{ticker} - no data")
+            continue
+
+        try:
+            # Existing dates for this ticker
+            existing_dates = pd.read_sql(
+                "SELECT Date FROM Prices WHERE ticker = ?",
+                conn,
+                params=(ticker,)
+            )['Date']
+
+            # Remove rows already stored
+            stock_df = stock_df[
+                ~stock_df['Date'].astype(str).isin(existing_dates)
+            ]
+
+            if stock_df.empty:
+                print(f"{ticker} - no new records")
+                continue
+
+            # Keep only columns that exist in Prices table
+            stock_df = stock_df[
+                [
+                    'ticker',
+                    'Date',
+                    'Open',
+                    'High',
+                    'Low',
+                    'Close',
+                    'Volume'
+                ]
+            ]
+
+            stock_df.to_sql(
+                'Prices',
+                conn,
+                if_exists='append',
+                index=False
+            )
+
+            print(f"{ticker} - added {len(stock_df)} rows")
+
+        except Exception as e:
+            print(f"{ticker} - database error: {e}")
+
+    conn.commit()
+
+    print(f"Batch {i // batch_size + 1} completed")
+
+
+# -----------------------------------
+# Close database
+# -----------------------------------
 conn.close()
+
+print("\nDaily price update complete")
